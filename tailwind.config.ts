@@ -9,8 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        border: "hsl(270 20% 88%)",
+        background: "hsl(0 0% 100%)",
+        foreground: "hsl(270 10% 15%)",
+      },
+      backgroundImage: {
+        'wave-gradient': 'linear-gradient(135deg, #f3e8ff 0%, #fce7f3 50%, #ffffff 100%)',
       },
     },
   },
