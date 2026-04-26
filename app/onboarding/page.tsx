@@ -4,34 +4,32 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
-
-const SYMPTOMS = [
-  { key: 'mood', label: 'Mood', emoji: '😊' },
-  { key: 'energy', label: 'Energy', emoji: '⚡' },
-  { key: 'cramps', label: 'Cramps', emoji: '🌀' },
-  { key: 'bloating', label: 'Bloating', emoji: '💨' },
-  { key: 'flow_intensity', label: 'Flow Intensity', emoji: '🌊' },
-]
-
-const STEPS = ['Welcome', 'Last Period', 'Cycle Length', 'Symptoms']
+import Stars from '@/components/ui/Stars'
+import MoonOrb from '@/components/ui/MoonOrb'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const supabase = createClient()
   const [step, setStep] = useState(0)
   const [lastPeriodDate, setLastPeriodDate] = useState('')
-  const [cycleLength, setCycleLength] = useState(28)
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(
-    SYMPTOMS.map((s) => s.key)
-  )
+  const [cycleLength, setCycleLength] = useState(29)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  function toggleSymptom(key: string) {
-    setSelectedSymptoms((prev) =>
-      prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key]
-    )
-  }
+  const steps = [
+    {
+      title: 'Welcome to\nHerWave',
+      sub: 'Your body has a rhythm. We help you understand it — deeply.',
+    },
+    {
+      title: 'When did your\nlast period start?',
+      sub: "This helps us calculate where you are in your cycle right now.",
+    },
+    {
+      title: 'Your cycle\nlength',
+      sub: 'Average is 28–30 days. Don\'t know? Start with 29.',
+    },
+  ]
 
   async function handleComplete() {
     setLoading(true)
@@ -41,163 +39,231 @@ export default function OnboardingPage() {
       router.push('/login')
       return
     }
-
-    const { error } = await supabase
+    const { error: err } = await supabase
       .from('profiles')
       .update({
         last_period_date: lastPeriodDate,
         cycle_length: cycleLength,
-        symptoms_to_track: selectedSymptoms,
         onboarding_complete: true,
       })
       .eq('user_id', user.id)
 
-    if (error) {
-      setError(error.message)
+    if (err) {
+      setError(err.message)
       setLoading(false)
       return
     }
-
     router.push('/dashboard')
     router.refresh()
   }
 
-  const progress = ((step + 1) / STEPS.length) * 100
+  const isLast = step === steps.length - 1
+  const current = steps[step]
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '14px 20px',
+    borderRadius: 16,
+    background: 'rgba(42,16,69,0.5)',
+    border: '1px solid rgba(192,132,252,0.4)',
+    color: 'white',
+    fontSize: 16,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-dm-sans)',
+    colorScheme: 'dark',
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <span className="text-3xl">🌊</span>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mt-2">
-            Let&apos;s set up HerWave
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Step {step + 1} of {STEPS.length}</p>
+    <div
+      className="min-h-screen flex flex-col relative overflow-hidden"
+      style={{ background: 'linear-gradient(160deg, #18062a 0%, #1e0738 60%, #12042a 100%)' }}
+    >
+      <Stars count={40} />
+
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          height: '100%',
+          maxWidth: 480,
+          margin: '0 auto',
+          width: '100%',
+          padding: '48px 28px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}
+      >
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 36 }}>
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: i === step ? 28 : 6,
+                height: 6,
+                borderRadius: 99,
+                background: i === step ? '#c084fc' : 'rgba(255,255,255,0.15)',
+                transition: 'all 0.3s',
+              }}
+            />
+          ))}
         </div>
 
-        {/* Progress bar */}
-        <div className="h-2 bg-purple-100 rounded-full mb-8 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+        {/* Title */}
+        <h1
+          style={{
+            fontFamily: 'var(--font-playfair)',
+            fontSize: 38,
+            fontWeight: 700,
+            color: 'white',
+            whiteSpace: 'pre-line',
+            lineHeight: 1.15,
+            margin: '0 0 10px',
+          }}
+        >
+          {current.title}
+        </h1>
+        <p style={{ color: '#9b8db0', fontSize: 14, lineHeight: 1.6, margin: '0 0 36px' }}>
+          {current.sub}
+        </p>
 
-        <div className="glass rounded-2xl p-6 shadow-xl shadow-purple-100 min-h-[280px] flex flex-col">
-          {/* Step 0: Welcome */}
+        {/* Step content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {step === 0 && (
-            <div className="flex-1 flex flex-col justify-center text-center">
-              <div className="text-5xl mb-4">✨</div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Welcome to HerWave</h2>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                We&apos;ll ask you a few quick questions to personalize your experience.
-                Your data is private and secure.
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ position: 'relative', width: 200, height: 200, margin: '0 auto 36px' }}>
+                <MoonOrb phase={0.25} color="#c084fc" size={200} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: -10,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                    borderRadius: 99,
+                    padding: '5px 18px',
+                    fontSize: 12,
+                    color: 'white',
+                    whiteSpace: 'nowrap',
+                    fontFamily: 'var(--font-dm-sans)',
+                  }}
+                >
+                  🌒 Follicular Phase
+                </div>
+              </div>
+              <p style={{ color: '#c4b5d8', fontSize: 14, lineHeight: 1.65, margin: '0 10px' }}>
+                Track your cycle, understand your phases, and let AI be your knowledgeable companion.
               </p>
             </div>
           )}
 
-          {/* Step 1: Last period date */}
           {step === 1 && (
-            <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">When did your last period start?</h2>
-              <p className="text-gray-500 text-sm mb-6">This helps us calculate your current cycle phase.</p>
+            <div>
               <input
                 type="date"
                 value={lastPeriodDate}
                 onChange={(e) => setLastPeriodDate(e.target.value)}
                 max={format(new Date(), 'yyyy-MM-dd')}
-                className="w-full px-4 py-3 rounded-xl border border-purple-100 bg-white/80 focus:outline-none focus:ring-2 focus:ring-purple-300 text-gray-800"
+                style={inputStyle}
               />
+              <p style={{ color: '#6b5a8a', fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+                This stays on your device. We value your privacy.
+              </p>
             </div>
           )}
 
-          {/* Step 2: Cycle length */}
           {step === 2 && (
-            <div className="flex-1 flex flex-col justify-center">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">How long is your typical cycle?</h2>
-              <p className="text-gray-500 text-sm mb-6">The average is 28 days, but cycles vary.</p>
-              <div className="flex items-center justify-center gap-6">
-                <button
-                  onClick={() => setCycleLength((v) => Math.max(20, v - 1))}
-                  className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 text-xl font-bold flex items-center justify-center hover:bg-purple-200 transition-all"
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                <span
+                  style={{
+                    fontSize: 72,
+                    fontFamily: 'var(--font-playfair)',
+                    fontWeight: 700,
+                    color: '#c084fc',
+                  }}
                 >
-                  −
-                </button>
-                <div className="text-center">
-                  <span className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
-                    {cycleLength}
-                  </span>
-                  <p className="text-gray-400 text-sm mt-1">days</p>
-                </div>
-                <button
-                  onClick={() => setCycleLength((v) => Math.min(45, v + 1))}
-                  className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 text-xl font-bold flex items-center justify-center hover:bg-purple-200 transition-all"
-                >
-                  +
-                </button>
+                  {cycleLength}
+                </span>
+                <span style={{ fontSize: 20, color: '#c4b5d8' }}> days</span>
+              </div>
+              <input
+                type="range"
+                min={21}
+                max={40}
+                value={cycleLength}
+                onChange={(e) => setCycleLength(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#c084fc' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                <span style={{ color: '#6b5a8a', fontSize: 12 }}>21 days</span>
+                <span style={{ color: '#6b5a8a', fontSize: 12 }}>40 days</span>
+              </div>
+              <div
+                style={{
+                  marginTop: 28,
+                  background: 'rgba(192,132,252,0.08)',
+                  border: '1px solid rgba(192,132,252,0.2)',
+                  borderRadius: 16,
+                  padding: 16,
+                }}
+              >
+                <p style={{ color: '#c4b5d8', fontSize: 13, lineHeight: 1.65, margin: 0 }}>
+                  💜 HerWave learns your unique rhythm over time and gets smarter each cycle.
+                </p>
               </div>
             </div>
           )}
-
-          {/* Step 3: Symptoms */}
-          {step === 3 && (
-            <div className="flex-1 flex flex-col">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">What do you want to track?</h2>
-              <p className="text-gray-500 text-sm mb-5">Select all that apply.</p>
-              <div className="grid grid-cols-2 gap-3">
-                {SYMPTOMS.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => toggleSymptom(s.key)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
-                      selectedSymptoms.includes(s.key)
-                        ? 'border-purple-400 bg-purple-50 text-purple-700'
-                        : 'border-purple-100 bg-white/60 text-gray-600 hover:border-purple-200'
-                    }`}
-                  >
-                    <span className="text-lg">{s.emoji}</span>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 mt-3">{error}</p>
-          )}
-
-          {/* Navigation */}
-          <div className="flex justify-between mt-6">
-            {step > 0 ? (
-              <button
-                onClick={() => setStep((s) => s - 1)}
-                className="px-5 py-2.5 rounded-xl text-purple-600 font-medium hover:bg-purple-50 transition-all"
-              >
-                Back
-              </button>
-            ) : <div />}
-
-            {step < STEPS.length - 1 ? (
-              <button
-                onClick={() => setStep((s) => s + 1)}
-                disabled={step === 1 && !lastPeriodDate}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold shadow hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                Continue
-              </button>
-            ) : (
-              <button
-                onClick={handleComplete}
-                disabled={loading || selectedSymptoms.length === 0}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold shadow hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50"
-              >
-                {loading ? 'Saving…' : "Let's Go! 🎉"}
-              </button>
-            )}
-          </div>
         </div>
+
+        {error && (
+          <p style={{ color: '#f43f5e', fontSize: 13, margin: '0 0 12px', textAlign: 'center' }}>
+            {error}
+          </p>
+        )}
+
+        {/* CTA button */}
+        <button
+          onClick={() => (isLast ? handleComplete() : setStep((s) => s + 1))}
+          disabled={loading || (step === 1 && !lastPeriodDate)}
+          style={{
+            width: '100%',
+            padding: 16,
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+            border: 'none',
+            color: 'white',
+            fontSize: 16,
+            fontFamily: 'var(--font-dm-sans)',
+            fontWeight: 600,
+            cursor: loading || (step === 1 && !lastPeriodDate) ? 'default' : 'pointer',
+            opacity: loading || (step === 1 && !lastPeriodDate) ? 0.5 : 1,
+            letterSpacing: 0.3,
+            boxShadow: '0 8px 32px rgba(219,39,119,0.4)',
+          }}
+        >
+          {loading ? 'Saving…' : isLast ? 'Start My Journey ✦' : 'Continue'}
+        </button>
+
+        {step > 0 && (
+          <button
+            onClick={() => setStep((s) => s - 1)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b5a8a',
+              fontSize: 14,
+              cursor: 'pointer',
+              marginTop: 14,
+              padding: 8,
+              textAlign: 'center',
+            }}
+          >
+            ← Back
+          </button>
+        )}
       </div>
     </div>
   )
